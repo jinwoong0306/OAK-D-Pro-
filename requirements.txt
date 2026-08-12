@@ -1,0 +1,4 @@
+# OAK-D Pro 기본 개발 환경 (2026-08-11 확인)
+depthai==3.8.0
+numpy==2.5.2
+opencv-python==5.0.0.93

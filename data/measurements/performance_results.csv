@@ -1,0 +1,5 @@
+timestamp,label,seconds,fps,detection_messages,detections,classes
+2026-08-11T13:40:46,1m_front_normal_light,11.88,18.69,222,376,chair;laptop;person;refrigerator
+2026-08-11T13:42:15,1m_left_30deg_normal_light,11.65,19.05,222,654,chair;couch;laptop;person;tv
+2026-08-11T13:42:59,1m_right_30deg_normal_light,10.9,20.46,223,238,cell phone;chair;cup;person;remote
+2026-08-11T13:47:06,1m_front_low_light,10.8,20.66,223,536,chair;laptop;person

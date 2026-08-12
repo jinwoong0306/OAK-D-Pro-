@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.py[cod]
+
+# Locally downloaded installers and verbose machine-specific logs
+installer/*.msi
+installer/logs/
+
+# Runtime logs and image captures may contain camera scene data
+data/logs/
