@@ -28,7 +28,6 @@ const states = {
 
 let eventNumber = 0;
 let socket;
-let apiAvailable = false;
 const get = (id) => document.getElementById(id);
 const now = () => new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date());
 
@@ -93,7 +92,6 @@ async function loadServerStatus() {
     const response = await fetch("/api/v1/status");
     if (!response.ok) throw new Error("status request failed");
     const status = await response.json();
-    apiAvailable = true;
     setState(status.system_status, status);
     return true;
   } catch {
@@ -112,14 +110,10 @@ function connectSocket() {
   socket.onclose = () => setTimeout(connectSocket, 2000);
 }
 
-document.querySelectorAll("[data-state]").forEach((button) => button.addEventListener("click", async () => {
-  const name = button.dataset.state;
-  if (!apiAvailable) {
-    setState(name);
-    return;
-  }
-  const response = await fetch(`/api/v1/simulator/${name}`, { method: "POST" });
-  if (response.ok) setState(name, await response.json());
+document.querySelectorAll("[data-state]").forEach((button) => button.addEventListener("click", () => {
+  // These controls are only for previewing the dashboard UI.  They must not
+  // change the remote safety state or require the sensor API key.
+  setState(button.dataset.state);
 }));
 
 loadServerStatus().then((connected) => { if (connected) connectSocket(); });
