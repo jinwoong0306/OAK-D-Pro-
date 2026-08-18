@@ -93,3 +93,13 @@ python .\src\simulate_sensor_events.py --scenario full
 ```
 
 It sends `SAFE → CAUTION → DANGER → UNCERTAIN` events to the real Linux server. When the program ends, wait about three seconds to verify `SENSOR_OFFLINE` in the web dashboard.
+
+## API state-machine verification
+
+Verify the remote server's `SAFE → CAUTION → DANGER → UNCERTAIN → SENSOR_OFFLINE` rules automatically:
+
+```powershell
+python .\src\verify_safety_api.py
+```
+
+Use `--skip-offline` when the server timeout should not be tested.
