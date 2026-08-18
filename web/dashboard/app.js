@@ -32,6 +32,12 @@ let lastServerEventId = "";
 const get = (id) => document.getElementById(id);
 const now = () => new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date());
 
+function setServerConnection(connected) {
+  get("server-connection").innerHTML = connected
+    ? '<i class="dot online"></i> 서버 연결됨'
+    : '<i class="dot"></i> 서버 연결 재시도 중';
+}
+
 function addEvent(state, reason, eventId = "", eventTime = now()) {
   if (eventId && eventId === lastServerEventId) return;
   if (eventId) lastServerEventId = eventId;
@@ -116,8 +122,10 @@ async function loadServerStatus() {
     setState(status.system_status, status);
     const eventsResponse = await fetch("/api/v1/events?limit=5");
     if (eventsResponse.ok) renderEventHistory(await eventsResponse.json());
+    setServerConnection(true);
     return true;
   } catch {
+    setServerConnection(false);
     // The standalone static preview has no API; the local simulator remains usable.
     return false;
   }
@@ -128,9 +136,15 @@ function connectSocket() {
   socket = new WebSocket(`${protocol}://${window.location.host}/ws/dashboard`);
   socket.onmessage = ({ data }) => {
     const status = JSON.parse(data);
+    setServerConnection(true);
     setState(status.system_status, status);
   };
-  socket.onclose = () => setTimeout(connectSocket, 2000);
+  socket.onopen = () => setServerConnection(true);
+  socket.onclose = () => {
+    setServerConnection(false);
+    setTimeout(connectSocket, 2000);
+  };
+  socket.onerror = () => socket.close();
 }
 
 document.querySelectorAll("[data-state]").forEach((button) => button.addEventListener("click", () => {
@@ -140,3 +154,4 @@ document.querySelectorAll("[data-state]").forEach((button) => button.addEventLis
 }));
 
 loadServerStatus().then((connected) => { if (connected) connectSocket(); });
+setInterval(loadServerStatus, 5000);
