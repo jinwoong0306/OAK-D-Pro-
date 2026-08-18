@@ -117,6 +117,7 @@ class EdgeSafetyEngine:
         nearest = self._nearest(event.objects)
         status_name, reason = self._decide(event, nearest)
         previous = self.status["system_status"]
+        changed = previous != status_name
         self.status = {
             "system_status": status_name,
             "recommended_action": self._action_for(status_name),
@@ -126,9 +127,8 @@ class EdgeSafetyEngine:
             "sensor_connected": True,
             "source": event.source.upper(),
             "fps": event.fps,
-            "event_id": f"EDGE-{uuid4().hex[:8].upper()}",
+            "event_id": f"EDGE-{uuid4().hex[:8].upper()}" if changed else self.status["event_id"],
         }
-        changed = previous != status_name
         if changed:
             self.events.insert(0, {
                 "at": datetime.now(UTC).isoformat(),
