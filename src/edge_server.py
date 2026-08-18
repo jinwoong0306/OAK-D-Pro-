@@ -16,7 +16,7 @@ from typing import Literal
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -194,8 +194,9 @@ def create_edge_app() -> FastAPI:
     app.mount("/dashboard", StaticFiles(directory=DASHBOARD_DIR, html=True), name="dashboard")
 
     @app.get("/", include_in_schema=False)
-    async def dashboard() -> FileResponse:
-        return FileResponse(DASHBOARD_DIR / "index.html")
+    async def dashboard() -> RedirectResponse:
+        """Keep relative dashboard assets under the mounted /dashboard/ path."""
+        return RedirectResponse(url="/dashboard/")
 
     @app.get("/api/v1/health")
     async def health() -> dict:
