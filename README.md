@@ -29,6 +29,21 @@ python -c "import depthai as dai; print(dai.Device.getAllAvailableDevices())"
 
 ## 주요 실행 명령
 
+## 로컬 엣지 MVP 실행
+
+카메라, 위험 판단, 현장 대시보드는 노트북에서 함께 실행한다. 리눅스 서버나
+인터넷 연결은 필요하지 않다.
+
+```powershell
+.\run_demo.ps1
+# 또는
+python -m src.edge_main
+```
+
+대시보드: `http://127.0.0.1:8010/dashboard/`
+
+구조와 카메라 없는 점검 방법은 [로컬 엣지 MVP 구조](docs/EDGE_MVP_ARCHITECTURE.md)를 참고한다.
+
 ```powershell
 # RGB와 stereo depth 미리보기
 python src/stream_preview.py
