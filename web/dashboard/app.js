@@ -38,6 +38,15 @@ function setServerConnection(connected) {
     : '<i class="dot"></i> 서버 연결 재시도 중';
 }
 
+function renderThresholds(settings) {
+  if (typeof settings.caution_enter_m === "number") {
+    get("caution-threshold").textContent = `${settings.caution_enter_m.toFixed(1)}m`;
+  }
+  if (typeof settings.danger_enter_m === "number") {
+    get("danger-threshold").textContent = `${settings.danger_enter_m.toFixed(1)}m`;
+  }
+}
+
 function addEvent(state, reason, eventId = "", eventTime = now()) {
   if (eventId && eventId === lastServerEventId) return;
   if (eventId) lastServerEventId = eventId;
@@ -122,6 +131,8 @@ async function loadServerStatus() {
     setState(status.system_status, status);
     const eventsResponse = await fetch("/api/v1/events?limit=5");
     if (eventsResponse.ok) renderEventHistory(await eventsResponse.json());
+    const settingsResponse = await fetch("/api/v1/settings");
+    if (settingsResponse.ok) renderThresholds(await settingsResponse.json());
     setServerConnection(true);
     return true;
   } catch {

@@ -208,6 +208,12 @@ async def recent_events(limit: int = 20) -> list[dict]:
     return service.events[: max(1, min(limit, 20))]
 
 
+@app.get("/api/v1/settings")
+async def current_settings() -> dict:
+    """Return the active safety thresholds for dashboard display."""
+    return service.thresholds
+
+
 @app.post("/api/v1/sensor-events")
 async def sensor_event(event: SensorEvent) -> dict:
     return await service.process(event)
