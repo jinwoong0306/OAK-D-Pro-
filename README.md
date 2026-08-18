@@ -83,3 +83,13 @@ python .\src\object_distance_demo.py
 ```
 
 The demo sends a sensor heartbeat twice per second, including when no object is detected. The web dashboard then shows the sensor as connected while the program is running and switches to `SENSOR_OFFLINE` about three seconds after it stops.
+
+## Camera-free dashboard test
+
+With the same server environment variables set, run the complete safety sequence without an OAK-D Pro:
+
+```powershell
+python .\src\simulate_sensor_events.py --scenario full
+```
+
+It sends `SAFE → CAUTION → DANGER → UNCERTAIN` events to the real Linux server. When the program ends, wait about three seconds to verify `SENSOR_OFFLINE` in the web dashboard.
