@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#07111f" />
+    <title>휠체어 안전 보조 대시보드</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="dashboard-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">WHEELCHAIR SAFETY ASSIST</p>
+          <h1>전방 안전 상태</h1>
+        </div>
+        <div class="connection-panel" aria-label="연결 상태">
+          <span class="connection-item"><i class="dot online"></i> 서버 연결됨</span>
+          <span class="connection-item" id="sensor-connection"><i class="dot online"></i> 센서 연결됨</span>
+          <span class="last-update" id="last-update">방금 수신</span>
+        </div>
+      </header>
+
+      <section class="status-card status-safe" id="status-card" aria-live="polite">
+        <div class="status-symbol" id="status-symbol">✓</div>
+        <div class="status-copy">
+          <p class="status-label">현재 상태</p>
+          <h2 id="status-name">SAFE</h2>
+          <p class="status-description" id="status-description">전방 안전</p>
+        </div>
+        <div class="action-box">
+          <p>권장 행동</p>
+          <strong id="recommended-action">정상 주행</strong>
+          <span id="action-code">NORMAL_DRIVE</span>
+        </div>
+      </section>
+
+      <section class="info-grid" aria-label="감지 정보">
+        <article class="info-card nearest-card">
+          <p class="card-label">최근접 전방 객체</p>
+          <div class="object-line">
+            <span class="object-icon" id="object-icon">—</span>
+            <strong id="object-name">감지된 장애물 없음</strong>
+          </div>
+          <div class="distance-row">
+            <span id="distance-value">—</span>
+            <small id="distance-note">안전 거리</small>
+          </div>
+          <dl>
+            <div><dt>거리 신뢰도</dt><dd id="distance-confidence">—</dd></div>
+            <div><dt>감지 신뢰도</dt><dd id="object-confidence">—</dd></div>
+          </dl>
+        </article>
+
+        <article class="info-card reason-card">
+          <p class="card-label">판정 사유</p>
+          <p class="reason" id="reason">유효한 위험 거리 내 장애물이 없습니다.</p>
+          <div class="thresholds">
+            <span><b>1.5m</b> 감속 권고</span>
+            <span><b>1.0m</b> 정지 필요</span>
+          </div>
+        </article>
+
+        <article class="info-card system-card">
+          <p class="card-label">시스템 정보</p>
+          <dl>
+            <div><dt>데이터 소스</dt><dd id="data-source">SIMULATOR</dd></div>
+            <div><dt>수신 FPS</dt><dd id="fps">—</dd></div>
+            <div><dt>이벤트 ID</dt><dd id="event-id">SIM-000</dd></div>
+          </dl>
+        </article>
+      </section>
+
+      <section class="event-section">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">EVENT HISTORY</p>
+            <h2>최근 상태 변경</h2>
+          </div>
+          <span class="event-count" id="event-count">0 events</span>
+        </div>
+        <ol class="event-list" id="event-list">
+          <li class="empty-event">아직 기록된 상태 변경이 없습니다.</li>
+        </ol>
+      </section>
+
+      <section class="simulator" aria-label="개발용 상태 시뮬레이터">
+        <div>
+          <p class="eyebrow">DEVELOPER SIMULATOR</p>
+          <h2>상태 전환 테스트</h2>
+          <p>카메라 연동 전 UI·경고 흐름을 확인하기 위한 개발용 제어판입니다.</p>
+        </div>
+        <div class="simulator-controls">
+          <button data-state="SAFE" class="safe">SAFE</button>
+          <button data-state="CAUTION" class="caution">CAUTION</button>
+          <button data-state="DANGER" class="danger">DANGER</button>
+          <button data-state="UNCERTAIN" class="uncertain">UNCERTAIN</button>
+          <button data-state="SENSOR_OFFLINE" class="offline">SENSOR OFFLINE</button>
+        </div>
+      </section>
+
+      <footer>
+        <span>본 화면은 안전 보조 시연용입니다.</span>
+        <strong>실제 브레이크·모터를 제어하지 않습니다.</strong>
+      </footer>
+    </main>
+    <script src="./app.js"></script>
+  </body>
+</html>

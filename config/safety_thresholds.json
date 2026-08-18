@@ -1,0 +1,8 @@
+{
+  "caution_enter_m": 1.5,
+  "danger_enter_m": 1.0,
+  "danger_release_m": 1.2,
+  "safe_release_m": 1.7,
+  "danger_confirmations": 2,
+  "sensor_timeout_seconds": 3
+}
