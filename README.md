@@ -71,3 +71,15 @@ PowerShell에서 아래 한 줄로 가상환경을 확인하고 통합 데모를
 | PowerShell에서 활성화가 막힘 | `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` 후 ` .\.venv\Scripts\Activate.ps1 `를 실행한다. |
 | 거리값이 `N/A` | 대상이 0.1m~3.0m 범위에 있는지, 조명이 충분한지, 대상이 화면 중앙에 있는지 확인한다. |
 | 저조도에서 경고가 부정확함 | 감지는 가능하지만 거리값이 불안정할 수 있다. 밝은 환경의 약 1m 정면 조건을 우선 사용한다. |
+# Linux Safety Server Connection
+
+When the OAK-D demo is connected to the remote safety dashboard, set these values in the PowerShell session before starting the demo. The API key must match the secret configured only on the Linux server.
+
+```powershell
+$env:SAFETY_SERVER_URL = 'http://203.234.62.117:8010'
+$env:SAFETY_API_KEY = 'server-secret-goes-here'
+$env:SAFETY_API_KEY_HEADER = 'X-API-Key'
+python .\src\object_distance_demo.py
+```
+
+The demo sends a sensor heartbeat twice per second, including when no object is detected. The web dashboard then shows the sensor as connected while the program is running and switches to `SENSOR_OFFLINE` about three seconds after it stops.

@@ -6,8 +6,13 @@ Press Q to close the preview.
 from collections import deque
 import csv
 from datetime import datetime
+import json
+import os
 from pathlib import Path
 import time
+from concurrent.futures import Future, ThreadPoolExecutor
+from urllib.error import URLError
+from urllib.request import Request, urlopen
 
 import cv2
 import depthai as dai
@@ -17,6 +22,11 @@ import numpy as np
 WARNING_DISTANCE_M = 1.2
 LOG_PATH = Path("data/logs/detections.csv")
 SNAPSHOT_DIR = Path("data/logs/warning_frames")
+SERVER_URL = os.getenv("SAFETY_SERVER_URL", "").rstrip("/")
+SERVER_API_KEY = os.getenv("SAFETY_API_KEY", "")
+SERVER_API_KEY_HEADER = os.getenv("SAFETY_API_KEY_HEADER", "X-API-Key")
+SENSOR_EVENT_INTERVAL_S = float(os.getenv("SENSOR_EVENT_INTERVAL_S", "0.5"))
+OAK_DEVICE_ID = os.getenv("OAK_DEVICE_ID", "")
 
 
 class MedianDistanceFilter:
@@ -74,6 +84,72 @@ class DetectionLogger:
             self.last_snapshot = now
 
 
+class SensorEventPublisher:
+    """Send heartbeat and object events without blocking the camera preview."""
+
+    def __init__(self) -> None:
+        self.endpoint = f"{SERVER_URL}/api/v1/sensor-events" if SERVER_URL else ""
+        self.last_sent = 0.0
+        self.last_error = ""
+        self.last_success = 0.0
+        self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="safety-api")
+        self.pending: Future[None] | None = None
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.endpoint and SERVER_API_KEY)
+
+    @property
+    def status_text(self) -> str:
+        if not SERVER_URL:
+            return "SERVER: URL NOT SET"
+        if not SERVER_API_KEY:
+            return "SERVER: API KEY NOT SET"
+        if self.pending is not None and not self.pending.done():
+            return "SERVER: SENDING"
+        if self.last_error:
+            return "SERVER: RETRYING"
+        return "SERVER: CONNECTED" if self.last_success else "SERVER: WAITING"
+
+    def publish(self, objects: list[dict[str, object]], fps: float) -> None:
+        now = time.monotonic()
+        if not self.configured or now - self.last_sent < SENSOR_EVENT_INTERVAL_S:
+            return
+        if self.pending is not None and not self.pending.done():
+            return
+        self.last_sent = now
+        payload = {
+            "timestamp": datetime.now().astimezone().isoformat(timespec="milliseconds"),
+            "source": "oakd",
+            "device_id": OAK_DEVICE_ID or None,
+            "fps": round(fps, 2),
+            "objects": objects,
+        }
+        self.pending = self.executor.submit(self._send, payload)
+
+    def _send(self, payload: dict[str, object]) -> None:
+        body = json.dumps(payload).encode("utf-8")
+        request = Request(
+            self.endpoint,
+            data=body,
+            method="POST",
+            headers={
+                "Content-Type": "application/json",
+                SERVER_API_KEY_HEADER: SERVER_API_KEY,
+            },
+        )
+        try:
+            with urlopen(request, timeout=1.5) as response:
+                response.read()
+            self.last_error = ""
+            self.last_success = time.monotonic()
+        except (OSError, URLError) as error:
+            self.last_error = str(error)
+
+    def close(self) -> None:
+        self.executor.shutdown(wait=False, cancel_futures=True)
+
+
 def roi_median_depth(depth: np.ndarray, detection: dai.ImgDetection) -> float | None:
     """Return depth median (mm) from the central part of a detection box."""
     height, width = depth.shape
@@ -87,6 +163,7 @@ def roi_median_depth(depth: np.ndarray, detection: dai.ImgDetection) -> float | 
 
 
 def main() -> None:
+    publisher = SensorEventPublisher()
     with dai.Pipeline() as pipeline:
         camera = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_A)
         left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
@@ -135,6 +212,7 @@ def main() -> None:
             height, width = frame.shape[:2]
             warning_count = 0
             object_summaries: list[str] = []
+            sensor_objects: list[dict[str, object]] = []
 
             for detection in detections:
                 x1, y1 = int(detection.xmin * width), int(detection.ymin * height)
@@ -156,6 +234,16 @@ def main() -> None:
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 0, 255), 2, cv2.LINE_AA)
                 logger.log(label, detection.confidence, distance, is_warning, frame)
                 object_summaries.append(f"{label}: {distance_text}")
+                sensor_objects.append({
+                    "label": label,
+                    "confidence": round(float(detection.confidence), 4),
+                    "distance_m": round(distance, 3) if distance is not None else None,
+                    "distance_confidence": "high" if distance is not None else "invalid",
+                })
+
+            # Send an empty object list too: it is the heartbeat that lets the
+            # server distinguish SAFE from SENSOR_OFFLINE.
+            publisher.publish(sensor_objects, fps)
 
             cv2.rectangle(frame, (0, 0), (width, 92), (25, 25, 25), thickness=-1)
             status = "WARNING" if warning_count else "CLEAR"
@@ -166,6 +254,9 @@ def main() -> None:
                         cv2.FONT_HERSHEY_SIMPLEX, 0.62, (220, 220, 220), 2, cv2.LINE_AA)
             cv2.putText(frame, f"STATUS: {status}", (16, 84), cv2.FONT_HERSHEY_SIMPLEX,
                         0.65, status_color, 2, cv2.LINE_AA)
+            server_color = (0, 220, 0) if "CONNECTED" in publisher.status_text else (0, 180, 255)
+            cv2.putText(frame, publisher.status_text, (min(560, width - 250), 28),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.48, server_color, 1, cv2.LINE_AA)
             if object_summaries:
                 summary = "  ".join(object_summaries[:2])
                 cv2.putText(frame, summary, (min(310, width // 2), 84), cv2.FONT_HERSHEY_SIMPLEX,
@@ -174,6 +265,7 @@ def main() -> None:
             if cv2.waitKey(1) & 0xFF in (ord("q"), ord("Q")):
                 break
 
+    publisher.close()
     cv2.destroyAllWindows()
 
 
