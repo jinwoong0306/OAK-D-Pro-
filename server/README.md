@@ -5,7 +5,7 @@ Linux 서버에서 프로젝트 루트로 이동한 뒤 실행합니다.
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements.txt
+python -m pip install -r server/requirements.txt
 python -m uvicorn server.main:app --host 0.0.0.0 --port 8000
 ```
 
