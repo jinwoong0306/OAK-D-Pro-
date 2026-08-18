@@ -28,18 +28,39 @@ const states = {
 
 let eventNumber = 0;
 let socket;
+let lastServerEventId = "";
 const get = (id) => document.getElementById(id);
 const now = () => new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date());
 
-function addEvent(state, reason) {
+function addEvent(state, reason, eventId = "", eventTime = now()) {
+  if (eventId && eventId === lastServerEventId) return;
+  if (eventId) lastServerEventId = eventId;
   eventNumber += 1;
   const list = get("event-list");
   list.querySelector(".empty-event")?.remove();
   const item = document.createElement("li");
-  item.innerHTML = `<span class="event-state">${state}</span><span>${reason}</span><span class="event-time">${now()}</span>`;
+  item.innerHTML = `<span class="event-state">${state}</span><span>${reason}</span><span class="event-time">${eventTime}</span>`;
   list.prepend(item);
   while (list.children.length > 5) list.lastElementChild.remove();
   get("event-count").textContent = `${eventNumber} event${eventNumber === 1 ? "" : "s"}`;
+}
+
+function renderEventHistory(events) {
+  const list = get("event-list");
+  list.replaceChildren();
+  if (!events.length) {
+    list.innerHTML = '<li class="empty-event">아직 기록된 상태 변경이 없습니다.</li>';
+    eventNumber = 0;
+    get("event-count").textContent = "0 events";
+    return;
+  }
+  eventNumber = 0;
+  events.slice(0, 5).reverse().forEach((event) => {
+    const eventTime = event.at
+      ? new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date(event.at))
+      : now();
+    addEvent(event.status, event.reason, event.event_id, eventTime);
+  });
 }
 
 function setState(name, serverStatus = null) {
@@ -84,7 +105,7 @@ function setState(name, serverStatus = null) {
   get("sensor-connection").innerHTML = name === "SENSOR_OFFLINE"
     ? '<i class="dot"></i> 센서 데이터 없음'
     : '<i class="dot online"></i> 센서 연결됨';
-  addEvent(name, state.reason);
+  addEvent(name, state.reason, serverStatus?.event_id || "");
 }
 
 async function loadServerStatus() {
@@ -93,6 +114,8 @@ async function loadServerStatus() {
     if (!response.ok) throw new Error("status request failed");
     const status = await response.json();
     setState(status.system_status, status);
+    const eventsResponse = await fetch("/api/v1/events?limit=5");
+    if (eventsResponse.ok) renderEventHistory(await eventsResponse.json());
     return true;
   } catch {
     // The standalone static preview has no API; the local simulator remains usable.
