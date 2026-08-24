@@ -210,8 +210,6 @@ def main() -> None:
             fps = 0.9 * fps + 0.1 / max(now - previous, 0.001)
             previous = now
             height, width = frame.shape[:2]
-            warning_count = 0
-            object_summaries: list[str] = []
             sensor_objects: list[dict[str, object]] = []
 
             for detection in detections:
@@ -224,7 +222,6 @@ def main() -> None:
                 distance_text = f"{distance:.2f}m" if distance is not None else "N/A"
                 text = f"{label} {detection.confidence:.0%} | {distance_text}"
                 is_warning = distance is not None and distance <= WARNING_DISTANCE_M
-                warning_count += int(is_warning)
                 color = (0, 0, 255) if is_warning else (0, 255, 0)
                 cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                 cv2.putText(frame, text, (x1, max(28, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX,
@@ -233,7 +230,6 @@ def main() -> None:
                     cv2.putText(frame, "WARNING: TOO CLOSE", (x1, min(height - 12, y2 + 26)),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 0, 255), 2, cv2.LINE_AA)
                 logger.log(label, detection.confidence, distance, is_warning, frame)
-                object_summaries.append(f"{label}: {distance_text}")
                 sensor_objects.append({
                     "label": label,
                     "confidence": round(float(detection.confidence), 4),
@@ -245,22 +241,6 @@ def main() -> None:
             # server distinguish SAFE from SENSOR_OFFLINE.
             publisher.publish(sensor_objects, fps)
 
-            cv2.rectangle(frame, (0, 0), (width, 92), (25, 25, 25), thickness=-1)
-            status = "WARNING" if warning_count else "CLEAR"
-            status_color = (0, 0, 255) if warning_count else (0, 220, 0)
-            cv2.putText(frame, "OAK-D Pro Safety Demo", (16, 28), cv2.FONT_HERSHEY_SIMPLEX,
-                        0.75, (255, 255, 255), 2, cv2.LINE_AA)
-            cv2.putText(frame, f"FPS {fps:.1f}  |  Objects {len(detections)}", (16, 58),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.62, (220, 220, 220), 2, cv2.LINE_AA)
-            cv2.putText(frame, f"STATUS: {status}", (16, 84), cv2.FONT_HERSHEY_SIMPLEX,
-                        0.65, status_color, 2, cv2.LINE_AA)
-            server_color = (0, 220, 0) if "CONNECTED" in publisher.status_text else (0, 180, 255)
-            cv2.putText(frame, publisher.status_text, (min(560, width - 250), 28),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.48, server_color, 1, cv2.LINE_AA)
-            if object_summaries:
-                summary = "  ".join(object_summaries[:2])
-                cv2.putText(frame, summary, (min(310, width // 2), 84), cv2.FONT_HERSHEY_SIMPLEX,
-                            0.55, (255, 255, 255), 1, cv2.LINE_AA)
             cv2.imshow("OAK-D Pro Object Distance", frame)
             if cv2.waitKey(1) & 0xFF in (ord("q"), ord("Q")):
                 break
