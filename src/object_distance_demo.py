@@ -212,7 +212,7 @@ def main() -> None:
             now = time.monotonic()
             fps = 0.9 * fps + 0.1 / max(now - previous, 0.001)
             previous = now
-            _, width = frame.shape[:2]
+            height, width = frame.shape[:2]
             sensor_objects: list[dict[str, object]] = []
 
             for detection in detections:
