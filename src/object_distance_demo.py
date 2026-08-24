@@ -212,7 +212,7 @@ def main() -> None:
             now = time.monotonic()
             fps = 0.9 * fps + 0.1 / max(now - previous, 0.001)
             previous = now
-            height, width = frame.shape[:2]
+            _, width = frame.shape[:2]
             sensor_objects: list[dict[str, object]] = []
 
             for detection in detections:
@@ -229,9 +229,6 @@ def main() -> None:
                 cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                 cv2.putText(frame, text, (x1, max(28, y1 - 8)), cv2.FONT_HERSHEY_SIMPLEX,
                             0.6, color, 2, cv2.LINE_AA)
-                if is_warning:
-                    cv2.putText(frame, "WARNING: TOO CLOSE", (x1, min(height - 12, y2 + 26)),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 0, 255), 2, cv2.LINE_AA)
                 logger.log(label, detection.confidence, distance, is_warning, frame)
                 sensor_objects.append({
                     "label": label,
