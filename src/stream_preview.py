@@ -9,6 +9,8 @@ import cv2
 import depthai as dai
 import numpy as np
 
+STEREO_SIZE = (1280, 800)
+
 
 def colorize_depth(depth: np.ndarray) -> np.ndarray:
     valid = depth[depth > 0]
@@ -29,8 +31,8 @@ def main() -> None:
     right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
     stereo = pipeline.create(dai.node.StereoDepth)
 
-    left.requestFullResolutionOutput().link(stereo.left)
-    right.requestFullResolutionOutput().link(stereo.right)
+    left.requestOutput(STEREO_SIZE).link(stereo.left)
+    right.requestOutput(STEREO_SIZE).link(stereo.right)
     rgb_queue = color.requestOutput(
         (640, 400), type=dai.ImgFrame.Type.BGR888i
     ).createOutputQueue(maxSize=4, blocking=False)

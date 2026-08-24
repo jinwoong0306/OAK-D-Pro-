@@ -15,6 +15,7 @@ import numpy as np
 
 
 RESULTS_PATH = Path("data/measurements/depth_condition_results.csv")
+STEREO_SIZE = (1280, 800)
 
 
 def main() -> None:
@@ -27,8 +28,8 @@ def main() -> None:
     left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
     right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
     stereo = pipeline.create(dai.node.StereoDepth)
-    left.requestFullResolutionOutput().link(stereo.left)
-    right.requestFullResolutionOutput().link(stereo.right)
+    left.requestOutput(STEREO_SIZE).link(stereo.left)
+    right.requestOutput(STEREO_SIZE).link(stereo.right)
     depth_queue = stereo.depth.createOutputQueue(maxSize=4, blocking=False)
 
     samples: list[float] = []

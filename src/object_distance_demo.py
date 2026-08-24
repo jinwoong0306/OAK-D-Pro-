@@ -20,6 +20,7 @@ import numpy as np
 
 
 WARNING_DISTANCE_M = 1.2
+STEREO_SIZE = (1280, 800)
 LOG_PATH = Path("data/logs/detections.csv")
 SNAPSHOT_DIR = Path("data/logs/warning_frames")
 SERVER_URL = os.getenv("SAFETY_SERVER_URL", "").rstrip("/")
@@ -169,8 +170,10 @@ def main() -> None:
         left = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_B)
         right = pipeline.create(dai.node.Camera).build(dai.CameraBoardSocket.CAM_C)
         stereo = pipeline.create(dai.node.StereoDepth)
-        left.requestFullResolutionOutput().link(stereo.left)
-        right.requestFullResolutionOutput().link(stereo.right)
+        # OAK-D LR sensors are 1920px wide, while RVC2 StereoDepth accepts a
+        # maximum 1280px input.  This also matches OAK-D Pro's 800P stereo mode.
+        left.requestOutput(STEREO_SIZE).link(stereo.left)
+        right.requestOutput(STEREO_SIZE).link(stereo.right)
 
         detector = pipeline.create(dai.node.DetectionNetwork).build(
             camera, dai.NNModelDescription("yolov6-nano")
