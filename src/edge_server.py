@@ -27,6 +27,15 @@ THRESHOLD_PATH = ROOT_DIR / "config" / "safety_thresholds.json"
 StatusName = Literal["SAFE", "CAUTION", "DANGER", "UNCERTAIN", "SENSOR_OFFLINE"]
 
 
+class DashboardStaticFiles(StaticFiles):
+    """Serve dashboard assets without stale browser-cache surprises in development."""
+
+    async def get_response(self, path: str, scope: dict) -> object:
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+
 class DetectedObject(BaseModel):
     label: str
     confidence: float = Field(ge=0, le=1)
@@ -194,7 +203,7 @@ def create_edge_app() -> FastAPI:
         task.cancel()
 
     app = FastAPI(title="Wheelchair Safety Assist Edge", version="0.2.0", lifespan=lifespan)
-    app.mount("/dashboard", StaticFiles(directory=DASHBOARD_DIR, html=True), name="dashboard")
+    app.mount("/dashboard", DashboardStaticFiles(directory=DASHBOARD_DIR, html=True), name="dashboard")
 
     @app.get("/", include_in_schema=False)
     async def dashboard() -> RedirectResponse:
