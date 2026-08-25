@@ -1,8 +1,10 @@
 {
-  "caution_enter_m": 1.5,
-  "danger_enter_m": 1.0,
-  "danger_release_m": 1.2,
-  "safe_release_m": 1.7,
+  "speed_assumption_kmh": 5.0,
+  "speed_profile_source": "Chen et al. (APSIPA 2023)",
+  "caution_enter_m": 1.91,
+  "danger_enter_m": 0.91,
+  "danger_release_m": 1.1,
+  "safe_release_m": 2.1,
   "danger_confirmations": 2,
   "sensor_timeout_seconds": 3
 }

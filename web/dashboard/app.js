@@ -6,13 +6,13 @@ const states = {
   },
   CAUTION: {
     symbol: "!", description: "감속 권고", action: "속도를 줄이세요", actionCode: "VIRTUAL_SLOW_DOWN",
-    object: "사람", objectIcon: "●", distance: "1.28 m", distanceNote: "주의 거리",
-    distanceConfidence: "높음", objectConfidence: "91%", reason: "사람이 감속 권고 거리 1.5m 이내에 있습니다.", fps: "19.4 FPS", source: "SIMULATOR"
+    object: "사람", objectIcon: "●", distance: "1.50 m", distanceNote: "경고 거리",
+    distanceConfidence: "높음", objectConfidence: "91%", reason: "사람이 5 km/h 경고 기준 1.91m 이내에 있습니다. 가상 감속을 권고합니다.", fps: "19.4 FPS", source: "SIMULATOR"
   },
   DANGER: {
     symbol: "■", description: "정지 필요", action: "즉시 정지하세요", actionCode: "VIRTUAL_STOP",
     object: "사람", objectIcon: "●", distance: "0.82 m", distanceNote: "위험 거리",
-    distanceConfidence: "높음", objectConfidence: "94%", reason: "사람이 가상 정지 기준 거리 1.0m 이내에 있습니다.", fps: "19.6 FPS", source: "SIMULATOR"
+    distanceConfidence: "높음", objectConfidence: "94%", reason: "사람이 5 km/h 위험 기준 0.91m 이내에 있습니다. 가상 정지가 필요합니다.", fps: "19.6 FPS", source: "SIMULATOR"
   },
   UNCERTAIN: {
     symbol: "?", description: "거리 측정 불안정", action: "전방을 직접 확인하세요", actionCode: "CHECK_FORWARD",
@@ -40,10 +40,13 @@ function setServerConnection(connected) {
 
 function renderThresholds(settings) {
   if (typeof settings.caution_enter_m === "number") {
-    get("caution-threshold").textContent = `${settings.caution_enter_m.toFixed(1)}m`;
+    get("caution-threshold").textContent = `${settings.caution_enter_m.toFixed(2)}m`;
   }
   if (typeof settings.danger_enter_m === "number") {
-    get("danger-threshold").textContent = `${settings.danger_enter_m.toFixed(1)}m`;
+    get("danger-threshold").textContent = `${settings.danger_enter_m.toFixed(2)}m`;
+  }
+  if (typeof settings.speed_assumption_kmh === "number") {
+    get("speed-assumption").textContent = `${settings.speed_assumption_kmh.toFixed(0)} km/h`;
   }
 }
 
@@ -99,6 +102,9 @@ function setState(name, serverStatus = null) {
     fps: serverStatus.fps != null ? `${serverStatus.fps.toFixed(1)} FPS` : fallback.fps,
     source: serverStatus.source || fallback.source
   } : fallback;
+  if (typeof serverStatus?.speed_assumption_kmh === "number") {
+    get("speed-assumption").textContent = `${serverStatus.speed_assumption_kmh.toFixed(0)} km/h`;
+  }
   const card = get("status-card");
   card.className = `status-card status-${name.toLowerCase().replace("_", "-")}`;
   get("status-symbol").textContent = state.symbol;

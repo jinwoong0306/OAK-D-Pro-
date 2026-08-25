@@ -38,7 +38,7 @@ h2 { letter-spacing: -0.035em; }
 .status-symbol { width: 86px; height: 86px; display: grid; place-items: center; border-radius: 50%; color: var(--safe); background: rgba(32,201,130,.15); font-size: 3rem; font-weight: 800; }
 .status-copy h2 { margin: 4px 0 7px; font-size: clamp(2.3rem, 6vw, 4.6rem); line-height: 1; }
 .status-description { font-size: 1.1rem; color: #dce8f5; }
-.action-box { min-width: 210px; padding: 18px 20px; border: 1px solid rgba(255,255,255,.13); border-radius: 13px; background: rgba(4,12,23,.32); }
+.action-box { min-width: 185px; padding: 18px 20px; border: 1px solid rgba(255,255,255,.13); border-radius: 13px; background: rgba(4,12,23,.32); }
 .action-box strong { display: block; margin: 7px 0 4px; font-size: 1.2rem; }
 .action-box span { font-size: .73rem; color: var(--muted); }
 
@@ -66,6 +66,10 @@ dt { color: var(--muted); } dd { margin: 0; font-weight: 700; }
 .thresholds { gap: 8px; flex-wrap: wrap; }
 .thresholds span { padding: 7px 9px; border-radius: 8px; color: #dce8f5; background: #1a2c43; font-size: .77rem; }
 .thresholds b { color: var(--caution); }
+.thresholds .threshold-danger b { color: var(--danger); }
+.threshold-caution { border: 1px solid rgba(246,196,83,.3); }
+.threshold-danger { border: 1px solid rgba(241,91,97,.35); }
+.threshold-caption { margin-top: 14px; color: var(--muted); font-size: .76rem; line-height: 1.45; }
 
 .event-section { margin-top: 16px; padding: 24px; }
 .section-heading h2, .simulator h2 { margin-top: 4px; font-size: 1.25rem; }

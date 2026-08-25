@@ -29,6 +29,11 @@
           <p class="status-description" id="status-description">전방 안전</p>
         </div>
         <div class="action-box">
+          <p>운행 가정</p>
+          <strong id="speed-assumption">5 km/h</strong>
+          <span>고정 속도 프로필</span>
+        </div>
+        <div class="action-box">
           <p>권장 행동</p>
           <strong id="recommended-action">정상 주행</strong>
           <span id="action-code">NORMAL_DRIVE</span>
@@ -53,12 +58,13 @@
         </article>
 
         <article class="info-card reason-card">
-          <p class="card-label">판정 사유</p>
+          <p class="card-label">속도별 위험거리 · 5 km/h</p>
           <p class="reason" id="reason">유효한 위험 거리 내 장애물이 없습니다.</p>
           <div class="thresholds">
-            <span><b id="caution-threshold">1.5m</b> 감속 권고</span>
-            <span><b id="danger-threshold">1.0m</b> 정지 필요</span>
+            <span class="threshold-caution"><b id="caution-threshold">1.91m</b> 경고 · 가상 감속</span>
+            <span class="threshold-danger"><b id="danger-threshold">0.91m</b> 위험 · 가상 정지</span>
           </div>
+          <p class="threshold-caption">논문 기반 고정 속도 프로필 · 실제 브레이크는 제어하지 않음</p>
         </article>
 
         <article class="info-card system-card">

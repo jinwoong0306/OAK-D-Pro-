@@ -43,6 +43,7 @@ class SensorEvent(BaseModel):
 
 
 class SettingsUpdate(BaseModel):
+    speed_assumption_kmh: float | None = Field(default=None, gt=0)
     caution_enter_m: float | None = Field(default=None, gt=0)
     danger_enter_m: float | None = Field(default=None, gt=0)
     danger_release_m: float | None = Field(default=None, gt=0)
@@ -70,6 +71,7 @@ class EdgeSafetyEngine:
             "source": "NO DATA",
             "fps": None,
             "event_id": "BOOT-000",
+            "speed_assumption_kmh": self.thresholds.get("speed_assumption_kmh"),
         }
 
     @staticmethod
@@ -128,6 +130,7 @@ class EdgeSafetyEngine:
             "source": event.source.upper(),
             "fps": event.fps,
             "event_id": f"EDGE-{uuid4().hex[:8].upper()}" if changed else self.status["event_id"],
+            "speed_assumption_kmh": self.thresholds.get("speed_assumption_kmh"),
         }
         if changed:
             self.events.insert(0, {
