@@ -4,6 +4,7 @@ Press Q to close the preview.
 """
 
 import csv
+from collections import deque
 from datetime import datetime
 import json
 import os
@@ -29,6 +30,25 @@ SERVER_API_KEY = os.getenv("SAFETY_API_KEY", "")
 SERVER_API_KEY_HEADER = os.getenv("SAFETY_API_KEY_HEADER", "X-API-Key")
 SENSOR_EVENT_INTERVAL_S = float(os.getenv("SENSOR_EVENT_INTERVAL_S", "0.5"))
 OAK_DEVICE_ID = os.getenv("OAK_DEVICE_ID", "")
+
+
+class TemporalMedianDistanceFilter:
+    """Stabilize depth noise without rejecting genuine distance changes.
+
+    A short median window removes single-frame stereo outliers caused by
+    texture, depth holes, and small detection-box movements. Unlike the old
+    max-jump rule, every valid sample enters the window, so walking toward an
+    object cannot leave the display stuck at an old distance.
+    """
+
+    def __init__(self, window_size: int = 3) -> None:
+        self.values: deque[float] = deque(maxlen=window_size)
+
+    def update(self, raw_mm: float | None) -> float | None:
+        if raw_mm is None:
+            return None
+        self.values.append(raw_mm / 1000)
+        return float(np.median(self.values))
 
 
 class DetectionLogger:
@@ -188,6 +208,7 @@ def main() -> None:
         detection_timestamp = None
         latest_depth = None
         depth_timestamp = None
+        distance_filters: dict[str, TemporalMedianDistanceFilter] = {}
         logger = DetectionLogger()
         previous = time.monotonic()
         fps = 0.0
@@ -231,10 +252,8 @@ def main() -> None:
                 x2, y2 = int(detection.xmax * width), int(detection.ymax * height)
                 label = labels[detection.label] if detection.label < len(labels) else str(detection.label)
                 raw_distance = roi_median_depth(latest_depth, detection) if latest_depth is not None else None
-                # Keep the raw ROI median during calibration.  The former
-                # jump-rejection filter could hold an old 1 m reading while
-                # a person was genuinely approaching the camera.
-                distance = raw_distance / 1000 if raw_distance is not None else None
+                distance_filter = distance_filters.setdefault(label, TemporalMedianDistanceFilter())
+                distance = distance_filter.update(raw_distance)
                 distance_text = f"{distance:.2f}m" if distance is not None else "N/A"
                 text = f"{label} {detection.confidence:.0%} | {distance_text}"
                 is_warning = distance is not None and distance <= WARNING_DISTANCE_M

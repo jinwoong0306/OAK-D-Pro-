@@ -43,4 +43,4 @@ python src/depth_condition_test.py --label "200cm_center" --actual-m 2.00 --fram
 - RGB 객체 좌표에 맞도록 stereo depth를 CAM_A(RGB)에 정렬했다.
 - 근거리 측정을 위해 extended disparity와 left-right check를 켰다.
 - RGB·객체탐지·depth의 시간 차가 120ms를 넘으면 이전 depth를 재사용하지 않는다.
-- 접근 중 실제 변화값을 버리던 거리 점프 필터를 제거했다.
+- 3프레임 시간 중앙값 필터를 적용했다. 큰 변화값을 버리지 않으므로 실제 접근은 계속 반영하면서, 단발성 depth 노이즈만 줄인다.
