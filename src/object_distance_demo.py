@@ -222,17 +222,15 @@ def main() -> None:
             )
 
             # DetectionNetwork inference and the RGB preview have different
-            # pipeline latency.  Never hide a valid detection box merely
-            # because its matching depth frame is late; only withhold its
-            # distance until a fresh depth frame is available.
+            # pipeline latency.  The skew is a confidence signal, not a
+            # reason to discard an otherwise valid stereo measurement.  It is
+            # especially important during calibration to keep seeing the raw
+            # distance instead of an unhelpful N/A.
             for detection in detections:
                 x1, y1 = int(detection.xmin * width), int(detection.ymin * height)
                 x2, y2 = int(detection.xmax * width), int(detection.ymax * height)
                 label = labels[detection.label] if detection.label < len(labels) else str(detection.label)
-                raw_distance = (
-                    roi_median_depth(latest_depth, detection)
-                    if depth_is_fresh_for_detection else None
-                )
+                raw_distance = roi_median_depth(latest_depth, detection) if latest_depth is not None else None
                 # Keep the raw ROI median during calibration.  The former
                 # jump-rejection filter could hold an old 1 m reading while
                 # a person was genuinely approaching the camera.
@@ -249,7 +247,9 @@ def main() -> None:
                     "label": label,
                     "confidence": round(float(detection.confidence), 4),
                     "distance_m": round(distance, 3) if distance is not None else None,
-                    "distance_confidence": "high" if distance is not None else "invalid",
+                    "distance_confidence": (
+                        "high" if depth_is_fresh_for_detection else "medium"
+                    ) if distance is not None else "invalid",
                 })
 
             # Send an empty object list too: it is the heartbeat that lets the
