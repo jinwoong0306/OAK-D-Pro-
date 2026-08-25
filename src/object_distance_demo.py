@@ -208,27 +208,31 @@ def main() -> None:
                 continue
 
             frame = message.getCvFrame()
-            rgb_timestamp = message.getTimestampDevice()
             now = time.monotonic()
             fps = 0.9 * fps + 0.1 / max(now - previous, 0.001)
             previous = now
             height, width = frame.shape[:2]
             sensor_objects: list[dict[str, object]] = []
 
-            streams_are_aligned = (
+            depth_is_fresh_for_detection = (
                 latest_depth is not None
                 and depth_timestamp is not None
                 and detection_timestamp is not None
-                and stream_skew_seconds(rgb_timestamp, depth_timestamp) <= MAX_STREAM_SKEW_S
-                and stream_skew_seconds(rgb_timestamp, detection_timestamp) <= MAX_STREAM_SKEW_S
+                and stream_skew_seconds(detection_timestamp, depth_timestamp) <= MAX_STREAM_SKEW_S
             )
-            frame_detections = detections if streams_are_aligned else []
 
-            for detection in frame_detections:
+            # DetectionNetwork inference and the RGB preview have different
+            # pipeline latency.  Never hide a valid detection box merely
+            # because its matching depth frame is late; only withhold its
+            # distance until a fresh depth frame is available.
+            for detection in detections:
                 x1, y1 = int(detection.xmin * width), int(detection.ymin * height)
                 x2, y2 = int(detection.xmax * width), int(detection.ymax * height)
                 label = labels[detection.label] if detection.label < len(labels) else str(detection.label)
-                raw_distance = roi_median_depth(latest_depth, detection)
+                raw_distance = (
+                    roi_median_depth(latest_depth, detection)
+                    if depth_is_fresh_for_detection else None
+                )
                 # Keep the raw ROI median during calibration.  The former
                 # jump-rejection filter could hold an old 1 m reading while
                 # a person was genuinely approaching the camera.
