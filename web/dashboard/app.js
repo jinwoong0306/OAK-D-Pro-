@@ -30,6 +30,10 @@ let eventNumber = 0;
 let socket;
 let lastServerEventId = "";
 const get = (id) => document.getElementById(id);
+const setText = (id, value) => {
+  const element = get(id);
+  if (element) element.textContent = value;
+};
 const now = () => new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date());
 
 function setServerConnection(connected) {
@@ -39,14 +43,14 @@ function setServerConnection(connected) {
 }
 
 function renderThresholds(settings) {
-  if (typeof settings.caution_enter_m === "number") {
-    get("caution-threshold").textContent = `${settings.caution_enter_m.toFixed(2)}m`;
+  if (typeof settings.caution_enter_m === "number" && get("caution-threshold")) {
+    setText("caution-threshold", `${settings.caution_enter_m.toFixed(2)}m`);
   }
-  if (typeof settings.danger_enter_m === "number") {
-    get("danger-threshold").textContent = `${settings.danger_enter_m.toFixed(2)}m`;
+  if (typeof settings.danger_enter_m === "number" && get("danger-threshold")) {
+    setText("danger-threshold", `${settings.danger_enter_m.toFixed(2)}m`);
   }
   if (typeof settings.speed_assumption_kmh === "number") {
-    get("speed-assumption").textContent = `${settings.speed_assumption_kmh.toFixed(0)} km/h`;
+    setText("speed-assumption", `${settings.speed_assumption_kmh.toFixed(0)} km/h`);
   }
 }
 
@@ -103,26 +107,25 @@ function setState(name, serverStatus = null) {
     source: serverStatus.source || fallback.source
   } : fallback;
   if (typeof serverStatus?.speed_assumption_kmh === "number") {
-    get("speed-assumption").textContent = `${serverStatus.speed_assumption_kmh.toFixed(0)} km/h`;
+    setText("speed-assumption", `${serverStatus.speed_assumption_kmh.toFixed(0)} km/h`);
   }
   const card = get("status-card");
   card.className = `status-card status-${name.toLowerCase().replace("_", "-")}`;
-  get("status-symbol").textContent = state.symbol;
-  get("status-name").textContent = name;
-  get("status-description").textContent = state.description;
-  get("recommended-action").textContent = state.action;
-  get("action-code").textContent = state.actionCode;
-  get("object-name").textContent = state.object;
-  get("object-icon").textContent = state.objectIcon;
-  get("distance-value").textContent = state.distance;
-  get("distance-note").textContent = state.distanceNote;
-  get("distance-confidence").textContent = state.distanceConfidence;
-  get("object-confidence").textContent = state.objectConfidence;
-  get("reason").textContent = state.reason;
-  get("data-source").textContent = state.source;
-  get("fps").textContent = state.fps;
-  get("event-id").textContent = serverStatus?.event_id || `SIM-${String(eventNumber + 1).padStart(3, "0")}`;
-  get("last-update").textContent = name === "SENSOR_OFFLINE" ? "3초 전 마지막 수신" : "방금 수신";
+  setText("status-symbol", state.symbol);
+  setText("status-name", name);
+  setText("status-description", state.description);
+  setText("recommended-action", state.action);
+  setText("object-name", state.object);
+  setText("object-icon", state.objectIcon);
+  setText("distance-value", state.distance);
+  setText("distance-note", state.distanceNote);
+  setText("distance-confidence", state.distanceConfidence);
+  setText("object-confidence", state.objectConfidence);
+  setText("reason", state.reason);
+  setText("data-source", state.source);
+  setText("fps", state.fps);
+  setText("event-id", serverStatus?.event_id || `SIM-${String(eventNumber + 1).padStart(3, "0")}`);
+  setText("last-update", name === "SENSOR_OFFLINE" ? "3초 전 마지막 수신" : "방금 수신");
   get("sensor-connection").innerHTML = name === "SENSOR_OFFLINE"
     ? '<i class="dot"></i> 센서 데이터 없음'
     : '<i class="dot online"></i> 센서 연결됨';
