@@ -3,7 +3,6 @@
 Press Q to close the preview.
 """
 
-from collections import deque
 import csv
 from datetime import datetime
 import json
@@ -21,6 +20,8 @@ import numpy as np
 
 WARNING_DISTANCE_M = 1.2
 STEREO_SIZE = (1280, 800)
+ALIGNED_DEPTH_SIZE = (640, 400)
+MAX_STREAM_SKEW_S = 0.12
 LOG_PATH = Path("data/logs/detections.csv")
 SNAPSHOT_DIR = Path("data/logs/warning_frames")
 SERVER_URL = os.getenv("SAFETY_SERVER_URL", "").rstrip("/")
@@ -28,23 +29,6 @@ SERVER_API_KEY = os.getenv("SAFETY_API_KEY", "")
 SERVER_API_KEY_HEADER = os.getenv("SAFETY_API_KEY_HEADER", "X-API-Key")
 SENSOR_EVENT_INTERVAL_S = float(os.getenv("SENSOR_EVENT_INTERVAL_S", "0.5"))
 OAK_DEVICE_ID = os.getenv("OAK_DEVICE_ID", "")
-
-
-class MedianDistanceFilter:
-    """Reject implausible jumps and smooth the last few valid distances."""
-
-    def __init__(self, window_size: int = 5, max_jump_m: float = 0.7) -> None:
-        self.values: deque[float] = deque(maxlen=window_size)
-        self.max_jump_m = max_jump_m
-
-    def update(self, raw_mm: float | None) -> float | None:
-        if raw_mm is None:
-            return None
-        raw_m = raw_mm / 1000
-        if self.values and abs(raw_m - float(np.median(self.values))) > self.max_jump_m:
-            return float(np.median(self.values))
-        self.values.append(raw_m)
-        return float(np.median(self.values))
 
 
 class DetectionLogger:
@@ -163,6 +147,11 @@ def roi_median_depth(depth: np.ndarray, detection: dai.ImgDetection) -> float | 
     return float(np.median(valid)) if valid.size else None
 
 
+def stream_skew_seconds(first: object, second: object) -> float:
+    """Return timestamp skew while keeping the streaming loop easy to read."""
+    return abs((first - second).total_seconds())
+
+
 def main() -> None:
     publisher = SensorEventPublisher()
     with dai.Pipeline() as pipeline:
@@ -174,6 +163,13 @@ def main() -> None:
         # maximum 1280px input.  This also matches OAK-D Pro's 800P stereo mode.
         left.requestOutput(STEREO_SIZE).link(stereo.left)
         right.requestOutput(STEREO_SIZE).link(stereo.right)
+        # Detection boxes come from the RGB camera (CAM_A).  Without this
+        # alignment, applying their coordinates to a left-camera depth frame
+        # samples a different part of the scene, especially at close range.
+        stereo.setLeftRightCheck(True)
+        stereo.setExtendedDisparity(True)
+        stereo.setDepthAlign(dai.CameraBoardSocket.CAM_A)
+        stereo.setOutputSize(*ALIGNED_DEPTH_SIZE)
 
         detector = pipeline.create(dai.node.DetectionNetwork).build(
             camera, dai.NNModelDescription("yolov6-nano")
@@ -189,8 +185,9 @@ def main() -> None:
         pipeline.start()
         cv2.namedWindow("OAK-D Pro Object Distance", cv2.WINDOW_NORMAL)
         detections = []
+        detection_timestamp = None
         latest_depth = None
-        distance_filters: dict[str, MedianDistanceFilter] = {}
+        depth_timestamp = None
         logger = DetectionLogger()
         previous = time.monotonic()
         fps = 0.0
@@ -199,9 +196,11 @@ def main() -> None:
             message = detection_queue.tryGet()
             if message is not None:
                 detections = message.detections
+                detection_timestamp = message.getTimestampDevice()
             message = depth_queue.tryGet()
             if message is not None:
                 latest_depth = message.getFrame()
+                depth_timestamp = message.getTimestampDevice()
             message = rgb_queue.tryGet()
             if message is None:
                 if cv2.waitKey(1) & 0xFF in (ord("q"), ord("Q")):
@@ -209,19 +208,31 @@ def main() -> None:
                 continue
 
             frame = message.getCvFrame()
+            rgb_timestamp = message.getTimestampDevice()
             now = time.monotonic()
             fps = 0.9 * fps + 0.1 / max(now - previous, 0.001)
             previous = now
             height, width = frame.shape[:2]
             sensor_objects: list[dict[str, object]] = []
 
-            for detection in detections:
+            streams_are_aligned = (
+                latest_depth is not None
+                and depth_timestamp is not None
+                and detection_timestamp is not None
+                and stream_skew_seconds(rgb_timestamp, depth_timestamp) <= MAX_STREAM_SKEW_S
+                and stream_skew_seconds(rgb_timestamp, detection_timestamp) <= MAX_STREAM_SKEW_S
+            )
+            frame_detections = detections if streams_are_aligned else []
+
+            for detection in frame_detections:
                 x1, y1 = int(detection.xmin * width), int(detection.ymin * height)
                 x2, y2 = int(detection.xmax * width), int(detection.ymax * height)
                 label = labels[detection.label] if detection.label < len(labels) else str(detection.label)
-                raw_distance = roi_median_depth(latest_depth, detection) if latest_depth is not None else None
-                distance_filter = distance_filters.setdefault(label, MedianDistanceFilter())
-                distance = distance_filter.update(raw_distance)
+                raw_distance = roi_median_depth(latest_depth, detection)
+                # Keep the raw ROI median during calibration.  The former
+                # jump-rejection filter could hold an old 1 m reading while
+                # a person was genuinely approaching the camera.
+                distance = raw_distance / 1000 if raw_distance is not None else None
                 distance_text = f"{distance:.2f}m" if distance is not None else "N/A"
                 text = f"{label} {detection.confidence:.0%} | {distance_text}"
                 is_warning = distance is not None and distance <= WARNING_DISTANCE_M

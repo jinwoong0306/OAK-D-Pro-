@@ -51,8 +51,8 @@ python src/stream_preview.py
 # RGB·depth 이미지 캡처
 python src/capture_streams.py
 
-# 조건별 거리 측정
-python src/depth_condition_test.py --label "1m_front" --frames 60
+# 줄자로 실측한 거리 조건 검증 (실측값과 오차를 CSV에 저장)
+python src/depth_condition_test.py --label "1m_front" --actual-m 1.0 --frames 100
 
 # 객체 감지
 python src/object_detection_demo.py
@@ -73,7 +73,7 @@ PowerShell에서 아래 한 줄로 가상환경을 확인하고 통합 데모를
 
 ## 결과 파일
 
-- 거리 조건 측정: `data/measurements/depth_condition_results.csv`
+- 거리 검증: `data/measurements/depth_validation_results.csv`
 - 객체 감지 성능: `data/measurements/performance_results.csv`
 - 감지 로그: `data/logs/detections.csv`
 - 경고 캡처: `data/logs/warning_frames/`
@@ -84,7 +84,7 @@ PowerShell에서 아래 한 줄로 가상환경을 확인하고 통합 데모를
 | --- | --- |
 | `No available devices` 또는 `X_LINK_ERROR` | 프로그램을 종료하고 USB3 케이블을 다시 연결한 뒤 장치 인식 명령을 다시 실행한다. |
 | PowerShell에서 활성화가 막힘 | `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` 후 ` .\.venv\Scripts\Activate.ps1 `를 실행한다. |
-| 거리값이 `N/A` | 대상이 0.1m~3.0m 범위에 있는지, 조명이 충분한지, 대상이 화면 중앙에 있는지 확인한다. |
+| 거리값이 `N/A` | 대상이 0.4m~3.0m 범위에 있는지, 조명이 충분한지, 대상이 화면 중앙에 있는지 확인한다. |
 | 저조도에서 경고가 부정확함 | 감지는 가능하지만 거리값이 불안정할 수 있다. 밝은 환경의 약 1m 정면 조건을 우선 사용한다. |
 # Linux Safety Server Connection
 
